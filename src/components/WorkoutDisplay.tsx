@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { GeneratedWorkout } from '@/types/workout';
 import { useWorkoutStorage } from '@/lib/useWorkoutStorage';
 import SaveWorkoutModal from './SaveWorkoutModal';
+import PDFExportButton from './PDFExportButton';
 import { Save, Share, Download, Star } from 'lucide-react';
 
 interface WorkoutDisplayProps {
@@ -157,12 +158,17 @@ Gerado em: ${window.location.origin}`;
             Compartilhar
           </button>
 
+          <PDFExportButton 
+            workout={workout} 
+            workoutName={`Treino AthletIQ - ${new Date().toLocaleDateString('pt-BR')}`}
+          />
+
           <button
             onClick={handleDownloadWorkout}
             className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
           >
             <Download className="h-4 w-4" />
-            Download
+            Download TXT
           </button>
         </div>
       </div>
