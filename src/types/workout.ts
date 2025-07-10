@@ -66,3 +66,23 @@ export interface GeneratedWorkout {
     deezerLink?: string;
   };
 }
+
+export interface SavedWorkout {
+  id: string;
+  name: string;
+  workout: GeneratedWorkout;
+  createdAt: Date;
+  tags?: string[];
+  notes?: string;
+  favorite?: boolean;
+}
+
+export interface WorkoutHistory {
+  savedWorkouts: SavedWorkout[];
+  completedWorkouts: {
+    workoutId: string;
+    completedAt: Date;
+    notes?: string;
+    rating?: number; // 1-5 stars
+  }[];
+}

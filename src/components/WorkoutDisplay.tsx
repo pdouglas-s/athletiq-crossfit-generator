@@ -1,13 +1,20 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GeneratedWorkout } from '@/types/workout';
+import { useWorkoutStorage } from '@/lib/useWorkoutStorage';
+import SaveWorkoutModal from './SaveWorkoutModal';
+import { Save, Share, Download, Star } from 'lucide-react';
 
 interface WorkoutDisplayProps {
   workout: GeneratedWorkout;
 }
 
 export default function WorkoutDisplay({ workout }: WorkoutDisplayProps) {
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [savedMessage, setSavedMessage] = useState('');
+  const { saveWorkout } = useWorkoutStorage();
+
   const formatDuration = (minutes: number) => {
     if (minutes < 60) {
       return `${minutes}min`;
@@ -21,6 +28,70 @@ export default function WorkoutDisplay({ workout }: WorkoutDisplayProps) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const handleSaveWorkout = (name: string, tags?: string[], notes?: string) => {
+    const savedId = saveWorkout(workout, name);
+    setSavedMessage('Treino salvo com sucesso!');
+    setTimeout(() => setSavedMessage(''), 3000);
+  };
+
+  const handleShareWorkout = () => {
+    const shareText = `🔥 Meu treino AthletIQ:
+    
+📋 ${workout.technique.exercise.name} + ${workout.wod.template.name}
+⏱️ ${workout.totalDuration} minutos
+💪 Dificuldade: ${workout.difficulty}
+    
+Gere o seu em: ${window.location.origin}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Meu Treino AthletIQ',
+        text: shareText,
+        url: window.location.origin
+      });
+    } else {
+      navigator.clipboard.writeText(shareText);
+      setSavedMessage('Treino copiado para área de transferência!');
+      setTimeout(() => setSavedMessage(''), 3000);
+    }
+  };
+
+  const handleDownloadWorkout = () => {
+    const workoutText = `TREINO ATHLETIQ - ${new Date().toLocaleDateString('pt-BR')}
+    
+=== AQUECIMENTO (${Math.floor(workout.warmup.totalDuration / 60)}:${(workout.warmup.totalDuration % 60).toString().padStart(2, '0')}) ===
+${workout.warmup.exercises.map((ex, i) => `${i + 1}. ${ex.name} - ${Math.floor(ex.duration / 60)}:${(ex.duration % 60).toString().padStart(2, '0')}`).join('\n')}
+
+=== TÉCNICA (${workout.technique.duration} min) ===
+Exercício: ${workout.technique.exercise.name}
+Foco: ${workout.technique.focus}
+Equipamentos: ${workout.technique.exercise.equipment.join(', ')}
+
+=== WOD (${workout.wod.estimatedDuration} min) ===
+Nome: ${workout.wod.template.name}
+Tipo: ${workout.wod.template.type}
+Descrição: ${workout.wod.template.description}
+
+=== PLAYLIST SUGERIDA ===
+🎵 ${workout.playlistSuggestion.name}
+${workout.playlistSuggestion.description}
+Spotify: ${workout.playlistSuggestion.spotifyLink || 'N/A'}
+Deezer: ${workout.playlistSuggestion.deezerLink || 'N/A'}
+
+DURAÇÃO TOTAL: ${workout.totalDuration} minutos
+DIFICULDADE: ${workout.difficulty}
+
+Gerado em: ${window.location.origin}`;
+
+    const blob = new Blob([workoutText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `treino-athletiq-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -59,6 +130,40 @@ export default function WorkoutDisplay({ workout }: WorkoutDisplayProps) {
             <h4 className="font-semibold text-gray-900">WOD</h4>
             <p className="text-sm text-gray-600">{formatDuration(workout.wod.estimatedDuration)}</p>
           </div>
+        </div>
+
+        {/* Mensagem de Sucesso */}
+        {savedMessage && (
+          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-700 text-sm font-medium">{savedMessage}</p>
+          </div>
+        )}
+
+        {/* Botões de Ação */}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <button
+            onClick={() => setShowSaveModal(true)}
+            className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Save className="h-4 w-4" />
+            Salvar Treino
+          </button>
+
+          <button
+            onClick={handleShareWorkout}
+            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <Share className="h-4 w-4" />
+            Compartilhar
+          </button>
+
+          <button
+            onClick={handleDownloadWorkout}
+            className="flex items-center gap-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Download
+          </button>
         </div>
       </div>
 
@@ -295,18 +400,13 @@ export default function WorkoutDisplay({ workout }: WorkoutDisplayProps) {
         </div>
       </div>
 
-      {/* Botões de Ação */}
-      <div className="flex flex-wrap gap-4 justify-center">
-        <button className="btn-primary">
-          💾 Salvar Treino
-        </button>
-        <button className="btn-secondary">
-          📤 Compartilhar
-        </button>
-        <button className="bg-gray-500 hover:bg-gray-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200">
-          📝 Fazer Anotações
-        </button>
-      </div>
+      {/* Modal de Salvar Treino */}
+      <SaveWorkoutModal
+        workout={workout}
+        isOpen={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={handleSaveWorkout}
+      />
     </div>
   );
 }
